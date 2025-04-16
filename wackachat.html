@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Omegle-Like Chat with Video</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .container {
+            width: 95%;
+            max-width: 800px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            text-align: center;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        #video-area {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+        #local-video, #remote-video {
+            width: 320px;
+            height: 240px;
+            border: 1px solid #a0aec0;
+            border-radius: 8px;
+            background-color: #f7fafc;
+            margin: 0;
+        }
+        #chat-area {
+            height: 200px;
+            border: 1px solid #a0aec0;
+            border-radius: 8px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f7fafc;
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+        }
+        #chat-area div {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 6px;
+            background-color: #e2e8f0;
+            color: #2d3748;
+            font-size: 16px;
+            word-wrap: break-word;
+            opacity: 0;
+            animation: fadeIn 0.3s ease-in-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        #chat-area div:nth-child(odd) {
+            background-color: #d1d8e3;
+        }
+        #controls {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        #message-input {
+            padding: 10px;
+            border: 1px solid #a0aec0;
+            border-radius: 6px;
+            font-size: 16px;
+            color: #2d3748;
+            transition: border-color 0.3s ease;
+        }
+        #message-input:focus {
+            outline: none;
+            border-color: #4299e1;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        #send-button, #disconnect-button, #new-chat-button {
+            padding: 12px 25px;
+            background-color: #4299e1;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: background-color 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        #send-button:hover, #disconnect-button:hover, #new-chat-button:hover {
+            background-color: #3182ce;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+        }
+        #send-button:active, #disconnect-button:active, #new-chat-button:active {
+            background-color: #234e68;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        #disconnect-button, #new-chat-button {
+            background-color: #e53e3e;
+        }
+        #disconnect-button:hover, #new-chat-button:hover {
+            background-color: #c53030;
+        }
+        #disconnect-button:active, #new-chat-button:active {
+            background-color: #9b2c2c;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        #status {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #2d3748;
+        }
+        #status.connected {
+            color: #48bb78;
+        }
+        #status.disconnected {
+            color: #e53e3e;
+        }
+        #status.connecting {
+            color: #f59e0b;
+        }
+        .fade-out {
+            animation: fadeOut 0.3s ease-in-out forwards;
+        }
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
+        .video-hidden {
+            display: none;
+        }
+        .video-visible {
+            display: flex;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Omegle-Like Chat with Video</h1>
+        <div id="status" class="disconnected">Disconnected</div>
+        <div id="video-area" class="video-hidden">
+            <video id="local-video" muted autoplay playsinline></video>
+            <video id="remote-video" autoplay playsinline></video>
+        </div>
+        <div id="chat-area">
+            <div>Welcome! Connecting to a partner...</div>
+        </div>
+        <div id="controls">
+            <input type="text" id="message-input" placeholder="Type your message..." disabled>
+            <button id="send-button" disabled>Send</button>
+            <button id="disconnect-button" disabled>Disconnect</button>
+            <button id="new-chat-button">New Chat</button>
+        </div>
+        <p>
+            This is a simplified simulation of an Omegle-like chat with video.
+        </p>
+    </div>
+    <script>
+        const chatArea = document.getElementById('chat-area');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const disconnectButton = document.getElementById('disconnect-button');
+        const newChatButton = document.getElementById('new-chat-button');
+        const statusDisplay = document.getElementById('status');
+        const videoArea = document.getElementById('video-area');
+        const localVideo = document.getElementById('local-video');
+        const remoteVideo = document.getElementById('remote-video');
+
+        let isConnected = false;
+        let partnerSocket = null; // Simulate a connection
+        let messageQueue = [];
+        let isProcessingQueue = false;
+        let localStream = null;
+        let peerConnection = null;
+
+        const iceServers = {
+            iceServers: [
+                { url: 'stun:stun.l.google.com:19302' },
+                { url: 'stun:stun1.l.google.com:19302' },
+                { url: 'stun:stun2.l.google.com:19302' },
+            ],
+        };
+
+        // Simulate WebSocket and server behavior
+        const simulatedWebSocket = {
+            onmessage: (callback) => {
+                simulatedWebSocket.messageCallback = callback;
+            },
+            send: (message) => {
+                if (isConnected) {
+                    // Simulate server echoing back to the sender and sending to the "partner"
+                    setTimeout(() => {
+                        simulatedWebSocket.messageCallback({ data: `You: ${message}` });
+                        if (partnerSocket) {
+                            partnerSocket.onmessage({ data: `Stranger: ${message}` });
+                        }
+                    }, 500);
+                }
+            },
+            close: () => {
+                setTimeout(() => {
+                    if (partnerSocket) {
+                        partnerSocket.onclose();
+                    }
+                }, 500);
+            },
+            onclose: (callback) => {
+                simulatedWebSocket.closeCallback = callback;
+            },
+            onopen: (callback) => {
+                simulatedWebSocket.openCallback = callback;
+            },
+            // Simulate connecting to a partner
+            connect: () => {
+                return new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        // Simulate a successful connection
+                        isConnected = true;
+                        statusDisplay.textContent = 'Connected to a stranger!';
+                        statusDisplay.className = 'connected';
+                        messageInput.disabled = false;
+                        sendButton.disabled = false;
+                        disconnectButton.disabled = false;
+                        videoArea.className = 'video-visible';
+                        resolve();
+                        if (simulatedWebSocket.openCallback) {
+                            simulatedWebSocket.openCallback();
+                        }
+                    }, 1500); // Simulate connection delay
+                });
+            },
+            disconnect: () => {
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        isConnected = false;
+                        statusDisplay.textContent = 'Disconnected';
+                        statusDisplay.className = 'disconnected';
+                        messageInput.disabled = true;
+                        sendButton.disabled = true;
+                        disconnectButton.disabled = true;
+                        videoArea.className = 'video-hidden';
+                        stopLocalVideo();
+                        if (peerConnection) {
+                            peerConnection.close();
+                            peerConnection = null;
+                        }
+                        partnerSocket = null; //reset
+                        resolve();
+                        if (simulatedWebSocket.closeCallback) {
+                            simulatedWebSocket.closeCallback();
+                        }
+                    }, 500);
+                });
+            },
+            on: (event, callback) => {
+                if (event === 'message') {
+                    simulatedWebSocket.messageCallback = callback;
+                } else if (event === 'close') {
+                    simulatedWebSocket.closeCallback = callback;
+                } else if (event === 'open') {
+                    simulatedWebSocket.openCallback = callback;
+                }
+            },
+        };
+
+        function createMockPartnerSocket() {
+            const mockSocket = {
+                onmessage: (callback) => {
+                    mockSocket.messageCallback = callback;
+                },
+                send: (message) => {
+                    //do nothing
+                },
+                onclose: (callback) => {
+                    mockSocket.closeCallback = callback;
+                },
+                on: (event, callback) => {
+                    if (event === 'message') {
+                        mockSocket.messageCallback = callback;
+                    } else if (event === 'close') {
+                        mockSocket.closeCallback = callback;
+                    }
+                },
+            };
+            return mockSocket;
+        }
+
+        function appendMessage(sender, message) {
+            const messageDiv = document.createElement('div');
+            messageDiv.textContent = `${sender}: ${message}`;
+            chatArea.appendChild(messageDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+
+        function processMessageQueue() {
+            if (isProcessingQueue || messageQueue.length === 0) {
+                return;
+            }
+            isProcessingQueue = true;
+            const messageData = messageQueue.shift();
+            appendMessage(messageData.sender, messageData.message);
+            setTimeout(() => {
+                isProcessingQueue = false;
+                processMessageQueue();
+            }, 100);
+        }
+
+        simulatedWebSocket.on('message', (event) => {
+            const messageDiv = document.createElement('div');
+            messageDiv.textContent = event.data;
+            chatArea.appendChild(messageDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        });
+
+        sendButton.addEventListener('click', () => {
+            const message = messageInput.value;
+            if (message.trim() !== '') {
+                simulatedWebSocket.send(message);
+                messageQueue.push({ sender: 'You', message: message });
+                processMessageQueue();
+                messageInput.value = '';
+            }
+        });
+
+        disconnectButton.addEventListener('click', () => {
+            simulatedWebSocket.disconnect().then(() => {
+                chatArea.innerHTML = '<div>Disconnected. Connecting to a partner...</div>';
+                statusDisplay.className = 'disconnected';
+                statusDisplay.textContent = 'Disconnected';
+                messageInput.disabled = true;
+                sendButton.disabled = true;
+                disconnectButton.disabled = true;
+                videoArea.className = 'video-hidden';
+            });
+        });
+
+        newChatButton.addEventListener('click', () => {
+            if (isConnected) {
+                simulatedWebSocket.disconnect().then(() => {
+                    chatArea.innerHTML = '<div>Welcome! Connecting to a partner...</div>';
+                    statusDisplay.textContent = 'Connecting to a stranger...';
+                    statusDisplay.className = 'connecting';
+                    startVideoCall();
+                    simulatedWebSocket.connect().then(() => {
+                        partnerSocket = createMockPartnerSocket();
+                        simulatedWebSocket.on('message', (event) => {
+                            messageQueue.push({ sender: 'Stranger', message: event.data });
+                            processMessageQueue();
+                        });
+                    });
+                })
+            } else {
+                chatArea.innerHTML = '<div>Welcome! Connecting to a partner...</div>';
+                statusDisplay.textContent = 'Connecting to a stranger...';
+                statusDisplay.className = 'connecting';
+                startVideoCall();
+                simulatedWebSocket.connect().then(() => {
+                    partnerSocket = createMockPartnerSocket();
+                    simulatedWebSocket.on('message', (event) => {
+                        messageQueue.push({ sender: 'Stranger', message: event.data });
+                        processMessageQueue();
+                    });
+                });
+            }
+        });
+
+        function startVideoCall() {
+            navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                .then((stream) => {
+                    localStream = stream;
+                    localVideo.srcObject = stream;
+
+                    createPeerConnection();
+                    //sendIceCandidates();  // Start sending ICE candidates after connection is established.
+
+                })
+                .catch((error) => {
+                    console.error('Error accessing media devices:', error);
+                    alert('Failed to access your camera and microphone. Video chat is disabled.');
+                    //reject(error); //reject
+                });
+        }
+
+        function createPeerConnection() {
+            peerConnection = new RTCPeerConnection(iceServers);
+
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate) {
+                    // console.log('Sending ICE candidate:', event.candidate);
+                    // In a real application, you would send this to the other peer via a signaling server (e.g., WebSocket)
+                    // simulatedWebSocket.send({ type: 'ice-candidate', candidate: event.candidate });
+                }
+            };
+
+            peerConnection.ontrack = (event) => {
+                remoteVideo.srcObject = event.streams[0];
+            };
+
+            localStream.getTracks().forEach((track) => {
+                peerConnection.addTrack(track, localStream);
+            });
+
+             // Simulate receiving offer from other peer.
+            peerConnection.createOffer()
+            .then(offer => peerConnection.setLocalDescription(offer))
+            .then(() => {
+                //in a real app, send offer to other side
+                setTimeout(()=>{
+                    simulatedWebSocket.onmessage({data: {type: 'offer', offer: peerConnection.localDescription}})
+                }, 1000);
+            })
+
+            simulatedWebSocket.onmessage = (message) => {
+                if(typeof message.data === 'string'){
+                    const messageDiv = document.createElement('div');
+                    messageDiv.textContent = message.data;
+                    chatArea.appendChild(messageDiv);
+                    chatArea.scrollTop = chatArea.scrollHeight;
+                }
+                else if (message.data.type === 'offer') {
+                    const offer = message.data.offer;
+                    peerConnection.setRemoteDescription(new RTCSessionDescription(offer))
+                        .then(() => peerConnection.createAnswer())
+                        .then(answer => peerConnection.setLocalDescription(answer))
+                        .then(() => {
+                            //send the answer
+                           setTimeout(()=>{
+                                simulatedWebSocket.onmessage({data: {type: 'answer', answer: peerConnection.localDescription}})
+                            }, 1000);
+                        })
+                        .catch(error => console.error("Error handling offer", error))
+
+                } else if (message.data.type === 'answer'){
+                    const answer = message.data.answer;
+                     peerConnection.setRemoteDescription(new RTCSessionDescription(answer))
+                     .catch(error => console.error("Error handling answer", error))
+                }
+                else if (message.data.type === 'ice-candidate') {
+                    const candidate = message.data.candidate;
+                    peerConnection.addIceCandidate(new RTCIceCandidate(candidate)).catch(e => console.error("Error adding ICE candidate", e));
+                }
+            };
+        }
+
+
+
+        function stopLocalVideo() {
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+                localVideo.srcObject = null;
+            }
+        }
+
+        //initial connection on load
+        statusDisplay.textContent = 'Connecting to a stranger...';
+        statusDisplay.className = 'connecting';
+        startVideoCall();
+        simulatedWebSocket.connect().then(() => {
+            partnerSocket = createMockPartnerSocket();
+            simulatedWebSocket.on('message', (event) => {
+                messageQueue.push({ sender: 'Stranger', message: event.data });
+                processMessageQueue();
+            });
+        });
+    </script>
+</body>
+</html>
